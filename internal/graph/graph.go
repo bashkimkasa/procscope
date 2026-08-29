@@ -40,7 +40,7 @@ func (g *Graph) GetProcessGraph() *models.ProcessGraph {
 // FormatTable formats the process graph as a table for display
 func (g *Graph) FormatTable() string {
 	var output string
-	output += fmt.Sprintf("%-20s %-8s %-10s %-25s %-20s\n", "PROCESS", "PID", "PARENT", "DNS", "NETWORK")
+	output += fmt.Sprintf("%-20s %-8s %-10s %-25s %-20s\n", "PROCESS", "PID", "PARENT", "HOSTNAME", "NETWORK")
 	output += fmt.Sprintf("%-20s %-8s %-10s %-25s %-20s\n", strings.Repeat("-", 19), strings.Repeat("-", 7), strings.Repeat("-", 9), strings.Repeat("-", 24), strings.Repeat("-", 19))
 
 	// Sort by PID for consistent output
@@ -79,10 +79,15 @@ func (g *Graph) FormatTable() string {
 			networkStr = fmt.Sprintf("%s:%d", conn.RemoteIP, conn.RemotePort)
 		}
 
-		output += fmt.Sprintf("%-20s %-8d %-10d %-25s %-20s\n",
+		parentLabel := fmt.Sprintf("%d", node.ProcessInfo.ParentPID)
+		if node.Parent != nil && node.Parent.ProcessInfo != nil {
+			parentLabel = fmt.Sprintf("%s (%d)", node.Parent.ProcessInfo.Name, node.Parent.ProcessInfo.PID)
+		}
+
+		output += fmt.Sprintf("%-20s %-8d %-18s %-25s %-20s\n",
 			node.ProcessInfo.Name,
 			node.ProcessInfo.PID,
-			node.ProcessInfo.ParentPID,
+			parentLabel,
 			dnsStr,
 			networkStr,
 		)
@@ -112,6 +117,13 @@ func (g *Graph) FormatProcessDetail(pid int) string {
 		output += fmt.Sprintf("Executable:    %s\n", pinfo.Executable)
 	}
 
+	output += "\nSummary:\n"
+	childCount := len(node.Children)
+	output += fmt.Sprintf("  Parent: %s\n", parentLabel)
+	output += fmt.Sprintf("  Children: %d\n", childCount)
+	output += fmt.Sprintf("  Hostnames: %d\n", len(node.DNSQueries))
+	output += fmt.Sprintf("  Network connections: %d\n", len(node.NetworkConns))
+
 	if len(node.Children) > 0 {
 		output += "\nChildren:\n"
 		for _, child := range node.Children {
@@ -125,12 +137,12 @@ func (g *Graph) FormatProcessDetail(pid int) string {
 	}
 
 	if len(node.DNSQueries) > 0 {
-		output += "\nDNS Queries:\n"
+		output += "\nHostname Context:\n"
 		for _, query := range node.DNSQueries {
 			output += fmt.Sprintf("  %s (%s)\n", query.Query, query.QueryType)
 		}
 	} else {
-		output += "\nDNS Queries:\n"
+		output += "\nHostname Context:\n"
 		output += "  (none)\n"
 	}
 

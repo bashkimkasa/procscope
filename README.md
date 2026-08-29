@@ -6,9 +6,9 @@ procscope answers a simple question:
 
 > **What is this process actually doing?**
 
-It collects process metadata, ancestry, network state, and operating-system signals, then correlates them into a single real-time view of behavior. The goal is simple: stop treating process activity, DNS, and network connections as disconnected events and instead show how they relate to one another.
+It collects process metadata, ancestry, network state, and operating-system signals, then correlates them into a single real-time view of behavior. The goal is simple: stop treating process activity, hostnames, and network connections as disconnected events and instead show how they relate to one another.
 
-The current Phase 1 implementation already includes a working cross-platform process graph and live monitoring flow.
+The current implementation includes a working cross-platform process graph and live monitoring flow, with hostname-context correlation derived from command lines and network metadata rather than full kernel-level DNS event capture.
 
 Instead of looking at processes, DNS, and network connections as separate streams, procscope connects them:
 
@@ -114,7 +114,7 @@ The goal is to make relationships visible:
 
 ## Current status
 
-The project currently includes a working Phase 1 implementation with cross-platform process collection and correlation.
+The project currently includes a working cross-platform process collection and correlation layer with heuristic hostname-context enrichment.
 
 ### Implemented so far
 
@@ -122,6 +122,7 @@ The project currently includes a working Phase 1 implementation with cross-platf
 * Process ancestry tracking via parent/child relationships
 * Process lifecycle event handling for start and exit behavior
 * Network connection collection using OS-native mechanisms
+* Hostname-context extraction from command lines and connection metadata
 * Real-time process graph generation in memory
 * Correlation layer that groups process activity by PID and parent relationship
 * `watch` command for live process monitoring
@@ -136,7 +137,7 @@ The project currently includes a working Phase 1 implementation with cross-platf
 | Linux | `/proc` filesystem parsing | ✅ Implemented |
 | macOS | `ps` + `lsof` | ✅ Implemented |
 
-The platform-specific collectors normalize the data into a common internal model consumed by the same correlation and graph engine.
+The platform-specific collectors normalize the data into a common internal model consumed by the same correlation and graph engine. The current hostname-context signal is intentionally heuristic and designed to enrich process behavior without claiming full DNS capture.
 
 ```text
               ┌─────────────────────┐
@@ -189,9 +190,10 @@ It is a **lightweight process behavior observability tool**.
 * [x] `explain` command
 * [x] Cross-platform collection on Windows, Linux, and macOS
 
-### Phase 2 — Next improvements
+### Phase 2 — In progress
 
-* [ ] Process → DNS correlation
+* [x] Process → hostname-context correlation from command lines and network metadata
+* [ ] Deeper OS-level DNS query capture
 * [ ] Process → network correlation details
 * [ ] Parent → child correlation visualization enhancements
 * [ ] File activity tracking

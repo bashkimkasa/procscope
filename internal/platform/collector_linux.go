@@ -117,6 +117,16 @@ func (lc *LinuxCollector) getExecutablePath(pid int) string {
 	return target
 }
 
+// GetDNSQueries gets DNS queries for a process on Linux by parsing the process command line.
+func (lc *LinuxCollector) GetDNSQueries(pid int) []*models.DNSQuery {
+	cmdlinePath := filepath.Join("/proc", strconv.Itoa(pid), "cmdline")
+	content, err := os.ReadFile(cmdlinePath)
+	if err != nil {
+		return nil
+	}
+	return extractDNSQueriesFromCommandLine(string(content), pid)
+}
+
 // GetNetworkConnections gets network connections for a process on Linux
 func (lc *LinuxCollector) GetNetworkConnections(pid int) []*models.NetworkConnection {
 	conns := make([]*models.NetworkConnection, 0)

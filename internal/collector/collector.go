@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/bashkimkasa/procscope/internal/models"
@@ -12,6 +13,8 @@ type Collector struct {
 	name      string
 	platform  platform.PlatformCollector
 	processes map[int]*models.ProcessInfo
+	dnsSeen   map[int]map[string]bool
+	netSeen   map[int]map[string]bool
 	eventChan chan *models.Event
 }
 
@@ -21,6 +24,8 @@ func NewCollector() *Collector {
 		name:      "OSCollector",
 		platform:  platform.NewCollector(),
 		processes: make(map[int]*models.ProcessInfo),
+		dnsSeen:   make(map[int]map[string]bool),
+		netSeen:   make(map[int]map[string]bool),
 		eventChan: make(chan *models.Event, 100),
 	}
 }
@@ -65,6 +70,9 @@ func (c *Collector) collectProcesses() {
 					Data:      pinfo,
 				}
 			}
+
+			c.emitNewDNSQueries(pid)
+			c.emitNewNetworkConnections(pid)
 		}
 
 		// Detect exited processes
@@ -93,7 +101,59 @@ func (c *Collector) GetNetworkConnections(pid int) []*models.NetworkConnection {
 	return c.platform.GetNetworkConnections(pid)
 }
 
+// GetDNSQueries delegates to the platform-specific collector
+func (c *Collector) GetDNSQueries(pid int) []*models.DNSQuery {
+	return c.platform.GetDNSQueries(pid)
+}
+
 // GetProcessChildren delegates to the platform-specific collector
 func (c *Collector) GetProcessChildren(parentPID int) []*models.ProcessInfo {
 	return c.platform.GetProcessChildren(parentPID)
+}
+
+func (c *Collector) emitNewDNSQueries(pid int) {
+	queries := c.GetDNSQueries(pid)
+	if c.dnsSeen[pid] == nil {
+		c.dnsSeen[pid] = make(map[string]bool)
+	}
+
+	for _, query := range queries {
+		if query == nil || query.Query == "" {
+			continue
+		}
+		if c.dnsSeen[pid][query.Query] {
+			continue
+		}
+		c.dnsSeen[pid][query.Query] = true
+		c.eventChan <- &models.Event{
+			Type:      "dns",
+			Timestamp: time.Now(),
+			ProcessID: pid,
+			Data:      query,
+		}
+	}
+}
+
+func (c *Collector) emitNewNetworkConnections(pid int) {
+	conns := c.GetNetworkConnections(pid)
+	if c.netSeen[pid] == nil {
+		c.netSeen[pid] = make(map[string]bool)
+	}
+
+	for _, conn := range conns {
+		if conn == nil {
+			continue
+		}
+		key := fmt.Sprintf("%s:%s:%d->%s:%d:%s", conn.Protocol, conn.LocalIP, conn.LocalPort, conn.RemoteIP, conn.RemotePort, conn.State)
+		if c.netSeen[pid][key] {
+			continue
+		}
+		c.netSeen[pid][key] = true
+		c.eventChan <- &models.Event{
+			Type:      "network",
+			Timestamp: time.Now(),
+			ProcessID: pid,
+			Data:      conn,
+		}
+	}
 }
