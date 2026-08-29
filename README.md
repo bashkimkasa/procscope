@@ -6,7 +6,9 @@ procscope answers a simple question:
 
 > **What is this process actually doing?**
 
-It observes and correlates process execution, process ancestry, DNS activity, network connections, and host events into a single, real-time view of process behavior.
+It collects process metadata, ancestry, network state, and operating-system signals, then correlates them into a single real-time view of behavior. The goal is simple: stop treating process activity, DNS, and network connections as disconnected events and instead show how they relate to one another.
+
+The current Phase 1 implementation already includes a working cross-platform process graph and live monitoring flow.
 
 Instead of looking at processes, DNS, and network connections as separate streams, procscope connects them:
 
@@ -110,17 +112,31 @@ The goal is to make relationships visible:
            curl       api.foo.com    10.20.4.15:443
 ```
 
-## Cross-platform by design
+## Current status
 
-procscope uses a common event model while taking advantage of the best telemetry mechanisms available on each operating system.
+The project currently includes a working Phase 1 implementation with cross-platform process collection and correlation.
 
-| Platform | Telemetry                       |
-| -------- | ------------------------------- |
-| Linux    | eBPF                            |
-| Windows  | eBPF / ETW                      |
-| macOS    | Endpoint Security / native APIs |
+### Implemented so far
 
-The platform-specific collectors produce normalized events that are consumed by the same correlation and graph engine.
+* Process enumeration and snapshots on Windows, Linux, and macOS
+* Process ancestry tracking via parent/child relationships
+* Process lifecycle event handling for start and exit behavior
+* Network connection collection using OS-native mechanisms
+* Real-time process graph generation in memory
+* Correlation layer that groups process activity by PID and parent relationship
+* `watch` command for live process monitoring
+* `explain` command for a detailed snapshot of a single process
+* Build scripts and output organization under `bin/`
+
+### Platform implementation
+
+| Platform | Current method | Status |
+| -------- | -------------- | ------ |
+| Windows | PowerShell `Get-Process` + `netstat` | ✅ Implemented |
+| Linux | `/proc` filesystem parsing | ✅ Implemented |
+| macOS | `ps` + `lsof` | ✅ Implemented |
+
+The platform-specific collectors normalize the data into a common internal model consumed by the same correlation and graph engine.
 
 ```text
               ┌─────────────────────┐
@@ -135,7 +151,7 @@ The platform-specific collectors produce normalized events that are consumed by 
           │              │              │
         Linux          Windows        macOS
           │              │              │
-        eBPF          eBPF / ETW      ES / APIs
+        /proc        PowerShell + netstat   ps + lsof
 ```
 
 ## Design principles
@@ -163,42 +179,36 @@ It is a **lightweight process behavior observability tool**.
 
 ## Roadmap
 
-### Phase 1 — Linux
+### Phase 1 — Complete
 
-* [ ] Process lifecycle events
-* [ ] Process ancestry
-* [ ] Network connections
-* [ ] DNS correlation
-* [ ] Real-time process graph
-* [ ] `watch` command
-* [ ] `explain` command
+* [x] Process lifecycle events
+* [x] Process ancestry tracking
+* [x] Network connection collection
+* [x] Real-time process graph
+* [x] `watch` command
+* [x] `explain` command
+* [x] Cross-platform collection on Windows, Linux, and macOS
 
-### Phase 2 — Correlation
+### Phase 2 — Next improvements
 
 * [ ] Process → DNS correlation
-* [ ] Process → network correlation
-* [ ] Parent → child correlation
-* [ ] File activity
+* [ ] Process → network correlation details
+* [ ] Parent → child correlation visualization enhancements
+* [ ] File activity tracking
 * [ ] Historical process relationships
 
-### Phase 3 — Cross-platform
-
-* [ ] Windows telemetry adapter
-* [ ] macOS telemetry adapter
-* [ ] Unified event model across platforms
-
-### Phase 4 — Observability
+### Phase 3 — Observability enhancements
 
 * [ ] Interactive terminal UI
-* [ ] JSON output
+* [ ] JSON output mode
 * [ ] OpenTelemetry export
-* [ ] Event filtering
+* [ ] Event filtering and search
 * [ ] Process behavior timelines
 
 ### Future
 
 * [ ] Behavioral anomaly detection
-* [ ] Network intent
+* [ ] Network intent analysis
 * [ ] Policy visualization
 * [ ] Optional enforcement
 
