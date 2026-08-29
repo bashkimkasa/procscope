@@ -72,6 +72,16 @@ func (dc *DarwinCollector) GetRunningProcesses() map[int]*models.ProcessInfo {
 	return processes
 }
 
+// GetDNSQueries gets DNS queries for a process on macOS by parsing the process command line.
+func (dc *DarwinCollector) GetDNSQueries(pid int) []*models.DNSQuery {
+	cmd := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "command=")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+	return extractDNSQueriesFromCommandLine(string(output), pid)
+}
+
 // GetNetworkConnections gets network connections for a process on macOS
 func (dc *DarwinCollector) GetNetworkConnections(pid int) []*models.NetworkConnection {
 	conns := make([]*models.NetworkConnection, 0)

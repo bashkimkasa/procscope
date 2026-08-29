@@ -158,10 +158,12 @@ func explainCommand() {
 		}
 	}
 
-	// Get network connections for this process
+	// Get network connections and DNS queries for this process
 	conns := coll.GetNetworkConnections(pid)
+	dnsQueries := coll.GetDNSQueries(pid)
 	if node, exists := pg.Processes[pid]; exists {
 		node.NetworkConns = conns
+		node.DNSQueries = dnsQueries
 	}
 
 	// Set graph and display

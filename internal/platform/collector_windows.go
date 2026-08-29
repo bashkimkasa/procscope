@@ -78,6 +78,18 @@ func (wc *WindowsCollector) GetRunningProcesses() map[int]*models.ProcessInfo {
 	return processes
 }
 
+// GetDNSQueries gets DNS queries for a process on Windows by inspecting the process command line and related artifacts.
+func (wc *WindowsCollector) GetDNSQueries(pid int) []*models.DNSQuery {
+	cmd := exec.Command("powershell", "-NoProfile", "-Command",
+		"Get-CimInstance Win32_Process -Filter \"ProcessId = '"+strconv.Itoa(pid)+"'\" | Select-Object -ExpandProperty CommandLine")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+
+	return extractDNSQueriesFromCommandLine(string(output), pid)
+}
+
 // GetNetworkConnections gets network connections for a process on Windows
 func (wc *WindowsCollector) GetNetworkConnections(pid int) []*models.NetworkConnection {
 	conns := make([]*models.NetworkConnection, 0)
