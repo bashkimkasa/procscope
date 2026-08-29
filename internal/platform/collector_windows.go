@@ -22,9 +22,10 @@ func newPlatformCollector() PlatformCollector {
 func (wc *WindowsCollector) GetRunningProcesses() map[int]*models.ProcessInfo {
 	processes := make(map[int]*models.ProcessInfo)
 
-	// Use PowerShell to get process information
+	// Use Win32_Process so ParentProcessId is returned directly instead of relying on
+	// Get-Process Parent metadata, which is often empty or unavailable.
 	cmd := exec.Command("powershell", "-Command",
-		"Get-Process | Select-Object Id, Name, @{Name='ParentId';Expression={(Get-Process -Id $_.Id -ErrorAction SilentlyContinue).Parent.Id}} | ConvertTo-Csv -NoTypeInformation")
+		"Get-CimInstance Win32_Process | Select-Object ProcessId, Name, ParentProcessId | ConvertTo-Csv -NoTypeInformation")
 	output, err := cmd.Output()
 	if err != nil {
 		return processes

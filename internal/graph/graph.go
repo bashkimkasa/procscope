@@ -101,7 +101,12 @@ func (g *Graph) FormatProcessDetail(pid int) string {
 	pinfo := node.ProcessInfo
 	output := fmt.Sprintf("Process:       %s\n", pinfo.Name)
 	output += fmt.Sprintf("PID:           %d\n", pinfo.PID)
-	output += fmt.Sprintf("Parent:        %d\n", pinfo.ParentPID)
+
+	parentLabel := fmt.Sprintf("%d", pinfo.ParentPID)
+	if node.Parent != nil && node.Parent.ProcessInfo != nil {
+		parentLabel = fmt.Sprintf("%s (PID %d)", node.Parent.ProcessInfo.Name, node.Parent.ProcessInfo.PID)
+	}
+	output += fmt.Sprintf("Parent:        %s\n", parentLabel)
 
 	if pinfo.Executable != "" {
 		output += fmt.Sprintf("Executable:    %s\n", pinfo.Executable)
